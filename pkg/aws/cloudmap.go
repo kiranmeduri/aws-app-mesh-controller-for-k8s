@@ -61,32 +61,13 @@ func (c *Cloud) CloudMapCreateService(ctx context.Context, cloudmapConfig *appme
 		return nil, fmt.Errorf("Could not find namespace in cloudmap with name %s", awssdk.StringValue(cloudmapConfig.NamespaceName))
 	}
 
-	//Only DNS namespaces provide support for applications to resolve service names
-	//to endpoints. HTTP namespaces on the other hand require discover-instances API
-	//to be called to resolve names to endpoints. In App Mesh application uses standard
-	//DNS resolution before Envoy intercepts the traffic and uses discover-instances via
-	//App Mesh's EDS endpoint. Hence, both DNS and discover-instances resolution need to
-	//work. Today only private dns namespaces support this, hence this check.
-	//It is possible to use HTTP namespaces when Envoy supports DNS filter
-	//https://github.com/envoyproxy/envoy/issues/6748
-	//TODO add support for HTTP namespace
-	if namespaceSummary.NamespaceType != servicediscovery.NamespaceTypeDnsPrivate {
-		return nil, fmt.Errorf("Cannot create service under namespace %s with type %s, only namespaces with type %s are supported",
-			awssdk.StringValue(cloudmapConfig.NamespaceName),
-			namespaceSummary.NamespaceType,
-			servicediscovery.NamespaceTypeDnsPrivate,
-		)
-	}
-
-	return c.createServiceUnderPrivateDNSNamespace(ctx, cloudmapConfig, creatorRequestID, namespaceSummary)
-}
-
-func (c *Cloud) createServiceUnderPrivateDNSNamespace(ctx context.Context, cloudmapConfig *appmesh.AwsCloudMapServiceDiscovery, creatorRequestID string, namespaceSummary *CloudMapNamespaceSummary) (*CloudMapServiceSummary, error) {
-	key := c.serviceCacheKey(cloudmapConfig)
 	createServiceInput := &servicediscovery.CreateServiceInput{
 		CreatorRequestId: awssdk.String(creatorRequestID),
 		Name:             cloudmapConfig.ServiceName,
-		DnsConfig: &servicediscovery.DnsConfig{
+	}
+	switch namespaceSummary.NamespaceType {
+	case servicediscovery.NamespaceTypeDnsPrivate:
+		createServiceInput.SetDnsConfig(&servicediscovery.DnsConfig{
 			NamespaceId:   awssdk.String(namespaceSummary.NamespaceID),
 			RoutingPolicy: awssdk.String(servicediscovery.RoutingPolicyMultivalue),
 			DnsRecords: []*servicediscovery.DnsRecord{
@@ -95,7 +76,14 @@ func (c *Cloud) createServiceUnderPrivateDNSNamespace(ctx context.Context, cloud
 					TTL:  awssdk.Int64(300),
 				},
 			},
-		},
+		})
+	case servicediscovery.NamespaceTypeHttp:
+		createServiceInput.SetNamespaceId(namespaceSummary.NamespaceID)
+	default:
+		return nil, fmt.Errorf("Cannot create service under namespace %s with type %s",
+			awssdk.StringValue(cloudmapConfig.NamespaceName),
+			namespaceSummary.NamespaceType,
+		)
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second*CreateServiceTimeout)
