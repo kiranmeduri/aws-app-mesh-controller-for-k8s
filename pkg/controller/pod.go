@@ -44,7 +44,7 @@ func (c *Controller) handlePod(key string) error {
 		return nil
 	}
 	if err != nil {
-		return err
+		return NewControllerError(err, errGetPod)
 	}
 
 	return c.syncPod(ctx, pod)
@@ -181,7 +181,7 @@ func (c *Controller) syncPod(ctx context.Context, pod *corev1.Pod) error {
 		return nil
 	}
 	if err != nil {
-		return err
+		return NewControllerError(err, errGetVirtualNode)
 	}
 
 	if virtualNode.Data.Spec.ServiceDiscovery == nil {
@@ -198,14 +198,14 @@ func (c *Controller) syncPod(ctx context.Context, pod *corev1.Pod) error {
 		klog.V(4).Infof("Deregistering instance %s under service %+v", pod.Name, cloudmapConfig)
 		err = c.cloud.DeregisterInstance(ctx, instanceID, cloudmapConfig)
 		if err != nil {
-			return err
+			return NewControllerError(err, errDeregisterInstance)
 		}
 	}
 
 	klog.V(4).Infof("Registering instance %s under service %+v", pod.Name, cloudmapConfig)
 	err = c.cloud.RegisterInstance(ctx, instanceID, pod, cloudmapConfig)
 	if err != nil {
-		return err
+		return NewControllerError(err, errRegisterInstance)
 	}
 
 	return nil

@@ -32,7 +32,7 @@ func (c *Controller) handleVService(key string) error {
 		return nil
 	}
 	if err != nil {
-		return err
+		return NewControllerError(err, errGetVirtualService)
 	}
 
 	// Make copy here so we never update the shared copy
@@ -81,7 +81,8 @@ func (c *Controller) handleVService(key string) error {
 	if !vservice.DeletionTimestamp.IsZero() {
 		c.stats.SetVirtualServiceInactive(vservice.Name, vservice.Spec.MeshName)
 		// Resource is being deleted, process finalizers
-		return c.handleVServiceDelete(ctx, vservice, copy)
+		err := c.handleVServiceDelete(ctx, vservice, copy)
+		return NewControllerError(err, errDeleteVirtualService)
 	}
 
 	if processVService := c.handleVServiceMeshDeleting(ctx, vservice); !processVService {
@@ -92,16 +93,25 @@ func (c *Controller) handleVService(key string) error {
 	// Get Mesh for virtual service
 	meshName := vservice.Spec.MeshName
 	if vservice.Spec.MeshName == "" {
-		return fmt.Errorf("'MeshName' is a required field")
+		return NewControllerError(
+			fmt.Errorf("'MeshName' is a required field"),
+			errInvalidSpec,
+		)
 	}
 
 	mesh, err := c.meshLister.Get(meshName)
 	if errors.IsNotFound(err) {
-		return fmt.Errorf("mesh %s for virtual service %s does not exist", meshName, name)
+		return NewControllerError(
+			fmt.Errorf("mesh %s for virtual service %s does not exist", meshName, name),
+			errMeshNotFound,
+		)
 	}
 
 	if !checkMeshActive(mesh) {
-		return fmt.Errorf("mesh %s must be active for virtual service %s", meshName, name)
+		return NewControllerError(
+			fmt.Errorf("mesh %s must be active for virtual service %s", meshName, name),
+			errMeshInactive,
+		)
 	}
 
 	virtualRouter := c.getVirtualRouter(vservice)
@@ -110,21 +120,33 @@ func (c *Controller) handleVService(key string) error {
 	if targetRouter, err := c.cloud.GetVirtualRouter(ctx, virtualRouter.Name, meshName); err != nil {
 		if aws.IsAWSErrNotFound(err) {
 			if targetRouter, err = c.cloud.CreateVirtualRouter(ctx, virtualRouter, meshName); err != nil {
-				return fmt.Errorf("error creating virtual router: %s", err)
+				return NewControllerError(
+					fmt.Errorf("error creating virtual router: %s", err),
+					errCreateVirtualRouter,
+				)
 			}
 			klog.Infof("Created virtual router %s", targetRouter.Name())
 		} else {
-			return fmt.Errorf("error describing virtual router: %s", err)
+			return NewControllerError(
+				fmt.Errorf("error describing virtual router: %s", err),
+				errGetVirtualRouter,
+			)
 		}
 		if updated, err := c.updateVRouterStatus(copy, targetRouter); err != nil {
-			return fmt.Errorf("error updating virtual service status for virtual router: %s", err)
+			return NewControllerError(
+				fmt.Errorf("error updating virtual service status for virtual router: %s", err),
+				errUpdateStatus,
+			)
 		} else if updated != nil {
 			copy = updated
 		}
 	} else {
 		if vrouterNeedsUpdate(virtualRouter, targetRouter) {
 			if targetRouter, err = c.cloud.UpdateVirtualRouter(ctx, virtualRouter, meshName); err != nil {
-				return fmt.Errorf("error updating virtual router: %s", err)
+				return NewControllerError(
+					fmt.Errorf("error updating virtual router: %s", err),
+					errUpdateVirtualRouter,
+				)
 			}
 			klog.Infof("Updated virtual router %s", virtualRouter.Name)
 		}
@@ -133,10 +155,16 @@ func (c *Controller) handleVService(key string) error {
 	desiredRoutes := getRoutes(vservice)
 	existingRoutes, err := c.cloud.GetRoutesForVirtualRouter(ctx, virtualRouter.Name, meshName)
 	if err != nil {
-		return fmt.Errorf("error getting routes for virtual service %s: %s", vservice.Name, err)
+		return NewControllerError(
+			fmt.Errorf("error getting routes for virtual service %s: %s", vservice.Name, err),
+			errListRoutes,
+		)
 	}
 	if err = c.updateRoutes(ctx, meshName, virtualRouter.Name, desiredRoutes, existingRoutes); err != nil {
-		return fmt.Errorf("error updating routes for virtual service %s: %s", vservice.Name, err)
+		return NewControllerError(
+			fmt.Errorf("error updating routes for virtual service %s: %s", vservice.Name, err),
+			errUpdateRoute,
+		)
 	}
 
 	routes, err := c.cloud.GetRoutesForVirtualRouter(ctx, virtualRouter.Name, meshName)
@@ -150,7 +178,10 @@ func (c *Controller) handleVService(key string) error {
 			status = api.ConditionFalse
 		}
 		if updated, err := c.updateRoutesActive(copy, status); err != nil {
-			return fmt.Errorf("error updating routes status: %s", err)
+			return NewControllerError(
+				fmt.Errorf("error updating routes status: %s", err),
+				errUpdateStatus,
+			)
 		} else if updated != nil {
 			copy = updated
 		}
@@ -161,15 +192,24 @@ func (c *Controller) handleVService(key string) error {
 	if err != nil {
 		if aws.IsAWSErrNotFound(err) {
 			if targetService, err = c.cloud.CreateVirtualService(ctx, vservice); err != nil {
-				return fmt.Errorf("error creating virtual service: %s", err)
+				return NewControllerError(
+					fmt.Errorf("error creating virtual service: %s", err),
+					errCreateVirtualService,
+				)
 			}
 		} else {
-			return fmt.Errorf("error describing virtual service: %s", err)
+			return NewControllerError(
+				fmt.Errorf("error describing virtual service: %s", err),
+				errGetVirtualService,
+			)
 		}
 	} else {
 		if vserviceNeedsUpdate(vservice, targetService) {
 			if targetService, err = c.cloud.UpdateVirtualService(ctx, vservice); err != nil {
-				return fmt.Errorf("error updating virtual service: %s", err)
+				return NewControllerError(
+					fmt.Errorf("error updating virtual service: %s", err),
+					errUpdateVirtualService,
+				)
 			}
 			klog.Infof("Updated virtual service %s", vservice.Name)
 		}
@@ -178,7 +218,10 @@ func (c *Controller) handleVService(key string) error {
 	c.stats.SetVirtualServiceActive(vservice.Name, vservice.Spec.MeshName)
 
 	if updated, err := c.updateVServiceStatus(copy, targetService); err != nil {
-		return fmt.Errorf("error updating virtual service status: %s", err)
+		return NewControllerError(
+			fmt.Errorf("error updating virtual service status: %s", err),
+			errUpdateStatus,
+		)
 	} else if updated != nil {
 		copy = updated
 	}

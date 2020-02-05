@@ -38,7 +38,7 @@ func (c *Controller) handleVNode(key string) error {
 		return nil
 	}
 	if err != nil {
-		return err
+		return NewControllerError(err, errGetVirtualNode)
 	}
 
 	// Make copy here so we never update the shared copy
@@ -54,7 +54,8 @@ func (c *Controller) handleVNode(key string) error {
 	if !vnode.DeletionTimestamp.IsZero() {
 		c.stats.SetVirtualNodeInactive(vnode.Name, vnode.Spec.MeshName)
 		// Resource is being deleted, process finalizers
-		return c.handleVNodeDelete(ctx, vnode, copy)
+		err := c.handleVNodeDelete(ctx, vnode, copy)
+		return NewControllerError(err, errDeleteVirtualNode)
 	}
 
 	// This is not a delete, add the deletion finalizer if it doesn't exist
@@ -77,16 +78,25 @@ func (c *Controller) handleVNode(key string) error {
 	// Get Mesh for virtual node
 	meshName := vnode.Spec.MeshName
 	if vnode.Spec.MeshName == "" {
-		return fmt.Errorf("'MeshName' is a required field")
+		return NewControllerError(
+			fmt.Errorf("'MeshName' is a required field"),
+			errInvalidSpec,
+		)
 	}
 
 	mesh, err := c.meshLister.Get(meshName)
 	if errors.IsNotFound(err) {
-		return fmt.Errorf("mesh %s for virtual node %s does not exist", meshName, name)
+		return NewControllerError(
+			fmt.Errorf("mesh %s for virtual node %s does not exist", meshName, name),
+			errMeshNotFound,
+		)
 	}
 
 	if !checkMeshActive(mesh) {
-		return fmt.Errorf("mesh %s must be active for virtual node %s", meshName, name)
+		return NewControllerError(
+			fmt.Errorf("mesh %s must be active for virtual node %s", meshName, name),
+			errMeshInactive,
+		)
 	}
 
 	// Create virtual node if it does not exist
@@ -94,16 +104,25 @@ func (c *Controller) handleVNode(key string) error {
 	if err != nil {
 		if aws.IsAWSErrNotFound(err) {
 			if targetNode, err = c.cloud.CreateVirtualNode(ctx, vnode); err != nil {
-				return fmt.Errorf("error creating virtual node: %s", err)
+				return NewControllerError(
+					fmt.Errorf("error creating virtual node: %s", err),
+					errCreateVirtualNode,
+				)
 			}
 			klog.Infof("Created virtual node %s", vnode.Name)
 		} else {
-			return fmt.Errorf("error describing virtual node: %s", err)
+			return NewControllerError(
+				fmt.Errorf("error describing virtual node: %s", err),
+				errGetVirtualNode,
+			)
 		}
 	} else {
 		if vnodeNeedsUpdate(vnode, targetNode) {
 			if targetNode, err = c.cloud.UpdateVirtualNode(ctx, vnode); err != nil {
-				return fmt.Errorf("error updating virtual node: %s", err)
+				return NewControllerError(
+					fmt.Errorf("error updating virtual node: %s", err),
+					errUpdateVirtualNode,
+				)
 			}
 			klog.Infof("Updated virtual node %s", vnode.Name)
 		}
@@ -113,14 +132,20 @@ func (c *Controller) handleVNode(key string) error {
 
 	updated, err := c.updateVNodeStatus(copy, targetNode)
 	if err != nil {
-		return fmt.Errorf("error updating virtual node status: %s", err)
+		return NewControllerError(
+			fmt.Errorf("error updating virtual node status: %s", err),
+			errUpdateStatus,
+		)
 	} else if updated != nil {
 		copy = updated
 	}
 
 	err = c.handleServiceDiscovery(ctx, vnode, copy)
 	if err != nil {
-		return fmt.Errorf("Error handling cloudmap service discovery for virtual node %s: %s", vnode.Name, err)
+		return NewControllerError(
+			fmt.Errorf("Error handling cloudmap service discovery for virtual node %s: %s", vnode.Name, err),
+			errServiceDiscovery,
+		)
 	}
 
 	return nil

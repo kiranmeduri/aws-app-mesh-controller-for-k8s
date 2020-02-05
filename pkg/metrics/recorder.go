@@ -17,6 +17,7 @@ type Recorder struct {
 	operationDuration   *prometheus.HistogramVec
 	awsAPIRequestError  *prometheus.CounterVec
 	awsAPIRequestCount  *prometheus.CounterVec
+	controllerError     *prometheus.CounterVec
 }
 
 // NewRecorder registers the App Mesh metrics
@@ -65,6 +66,12 @@ func NewRecorder(register bool) *Recorder {
 		Help:      "Cumulative number of requests made to the AWS API",
 	}, []string{"service", "operation"})
 
+	controllerError := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Subsystem: Subsystem,
+		Name:      "controller_error",
+		Help:      "Errors in controller",
+	}, []string{"controller", "errorcode"})
+
 	if register {
 		prometheus.MustRegister(meshState)
 		prometheus.MustRegister(virtualNodeState)
@@ -73,6 +80,7 @@ func NewRecorder(register bool) *Recorder {
 		prometheus.MustRegister(operationDuration)
 		prometheus.MustRegister(awsAPIRequestError)
 		prometheus.MustRegister(awsAPIRequestCount)
+		prometheus.MustRegister(controllerError)
 	}
 
 	return &Recorder{
@@ -83,6 +91,7 @@ func NewRecorder(register bool) *Recorder {
 		operationDuration:   operationDuration,
 		awsAPIRequestError:  awsAPIRequestError,
 		awsAPIRequestCount:  awsAPIRequestCount,
+		controllerError:     controllerError,
 	}
 }
 
@@ -94,6 +103,7 @@ func (r *Recorder) clearRegistry() {
 	prometheus.Unregister(r.operationDuration)
 	prometheus.Unregister(r.awsAPIRequestError)
 	prometheus.Unregister(r.awsAPIRequestCount)
+	prometheus.Unregister(r.controllerError)
 }
 
 // SetMeshActive sets the mesh gauge to 1
@@ -146,4 +156,9 @@ func (r *Recorder) RecordAWSAPIRequestError(service string, operation string, er
 // RecordAWSAPIRequestCount records count of AWS API call attempts
 func (r *Recorder) RecordAWSAPIRequestCount(service string, operation string) {
 	r.awsAPIRequestCount.WithLabelValues(service, operation).Inc()
+}
+
+// RecordControllerError records errors in controllers
+func (r *Recorder) RecordControllerError(kind string, errorcode string) {
+	r.controllerError.WithLabelValues(kind, errorcode).Inc()
 }

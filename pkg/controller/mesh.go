@@ -27,7 +27,7 @@ func (c *Controller) handleMesh(key string) error {
 		return nil
 	}
 	if err != nil {
-		return err
+		return NewControllerError(err, errGetMesh)
 	}
 
 	// Make copy here so we never update the shared copy
@@ -38,7 +38,8 @@ func (c *Controller) handleMesh(key string) error {
 	if !mesh.DeletionTimestamp.IsZero() {
 		c.stats.SetMeshInactive(mesh.Name)
 		// Resource is being deleted, process finalizers
-		return c.handleMeshDelete(ctx, mesh)
+		err := c.handleMeshDelete(ctx, mesh)
+		return NewControllerError(err, errDeleteMesh)
 	}
 
 	// This is not a delete, add the deletion finalizer if it doesn't exist
@@ -55,21 +56,33 @@ func (c *Controller) handleMesh(key string) error {
 	if targetMesh, err := c.cloud.GetMesh(ctx, mesh.Name); err != nil {
 		if aws.IsAWSErrNotFound(err) {
 			if targetMesh, err = c.cloud.CreateMesh(ctx, mesh); err != nil {
-				return fmt.Errorf("error creating mesh: %s", err)
+				return NewControllerError(
+					fmt.Errorf("error creating mesh: %s", err),
+					errCreateMesh,
+				)
 			}
 			klog.Infof("Created mesh %s", targetMesh.Name())
 		} else {
-			return fmt.Errorf("error describing mesh: %s", err)
+			return NewControllerError(
+				fmt.Errorf("error describing mesh: %s", err),
+				errGetMesh,
+			)
 		}
 	} else {
 		if c.meshNeedsUpdate(mesh, targetMesh) {
 			if targetMesh, err = c.cloud.UpdateMesh(ctx, mesh); err != nil {
-				return fmt.Errorf("error updating mesh: %s", err)
+				return NewControllerError(
+					fmt.Errorf("error updating mesh: %s", err),
+					errUpdateMesh,
+				)
 			}
 			klog.Infof("Updated mesh %s", mesh.Name)
 		}
 		if err := c.updateMeshActive(mesh); err != nil {
-			return fmt.Errorf("error updating mesh status: %s", err)
+			return NewControllerError(
+				fmt.Errorf("error updating mesh status: %s", err),
+				errUpdateStatus,
+			)
 		}
 	}
 

@@ -36,6 +36,23 @@ const (
 	virtualServiceDeletionFinalizerName = "virtualServiceDeletion.finalizers.appmesh.k8s.aws"
 )
 
+type ControllerHandler struct {
+	name        string
+	syncHandler func(string) error
+}
+
+type ControllerError struct {
+	error
+	Code string
+}
+
+func NewControllerError(err error, code string) ControllerError {
+	return ControllerError{
+		error: err,
+		Code:  code,
+	}
+}
+
 type Controller struct {
 	name  string
 	cloud aws.CloudAPI
@@ -373,22 +390,34 @@ func (c *Controller) virtualServiceDeleted(obj interface{}) {
 }
 
 func (c *Controller) meshWorker() {
-	for c.processNext(c.mq, c.handleMesh) {
+	for c.processNext(c.mq, &ControllerHandler{
+		syncHandler: c.handleMesh,
+		name:        "mesh",
+	}) {
 	}
 }
 
 func (c *Controller) vNodeWorker() {
-	for c.processNext(c.nq, c.handleVNode) {
+	for c.processNext(c.nq, &ControllerHandler{
+		syncHandler: c.handleVNode,
+		name:        "virtualnode",
+	}) {
 	}
 }
 
 func (c *Controller) vServiceWorker() {
-	for c.processNext(c.sq, c.handleVService) {
+	for c.processNext(c.sq, &ControllerHandler{
+		syncHandler: c.handleVService,
+		name:        "virtualservice",
+	}) {
 	}
 }
 
 func (c *Controller) podWorker() {
-	for c.processNext(c.pq, c.handlePod) {
+	for c.processNext(c.pq, &ControllerHandler{
+		syncHandler: c.handlePod,
+		name:        "pod",
+	}) {
 	}
 }
 
@@ -400,11 +429,11 @@ func (c *Controller) cloudmapReconciler() {
 
 // processNext will read a single work item off the queue and
 // attempt to process it, by calling the syncHandler.
-func (c *Controller) processNext(queue workqueue.RateLimitingInterface, syncHandler func(key string) error) bool {
-	return processNextWorkItem(queue, syncHandler)
+func (c *Controller) processNext(queue workqueue.RateLimitingInterface, handler *ControllerHandler) bool {
+	return c.processNextWorkItem(queue, handler)
 }
 
-func processNextWorkItem(queue workqueue.RateLimitingInterface, syncHandler func(key string) error) bool {
+func (c *Controller) processNextWorkItem(queue workqueue.RateLimitingInterface, handler *ControllerHandler) bool {
 	obj, shutdown := queue.Get()
 
 	if shutdown {
@@ -435,7 +464,12 @@ func processNextWorkItem(queue workqueue.RateLimitingInterface, syncHandler func
 		}
 		// Run the syncHandler, passing it the namespace/name string of the
 		// resource to be synced.
-		if err := syncHandler(key); err != nil {
+		if err := handler.syncHandler(key); err != nil {
+			if ctrlerr, ok := err.(ControllerError); ok {
+				c.stats.RecordControllerError(handler.name, ctrlerr.Code)
+			} else {
+				c.stats.RecordControllerError(handler.name, "internal")
+			}
 			return fmt.Errorf("error syncing '%s': %s", key, err.Error())
 		}
 		// Finally, if no error occurs we Forget this item so it does not
