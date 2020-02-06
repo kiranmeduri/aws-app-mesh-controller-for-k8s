@@ -22,7 +22,7 @@ func TestMain(m *testing.M) {
 func TestRecorder_SetMesh(t *testing.T) {
 	stats.SetMeshActive("test-mesh")
 
-	name := "appmesh_mesh_state"
+	name := "mesh_state"
 	metric, err := lookupMetric(name, promdto.MetricType_GAUGE, "name", "test-mesh")
 	if err != nil {
 		t.Fatalf("Error collecting %s metric: %v", name, err)
@@ -46,7 +46,7 @@ func TestRecorder_SetMesh(t *testing.T) {
 func TestRecorder_SetVirtualNode(t *testing.T) {
 	stats.SetVirtualNodeActive("test-vt", "test-mesh")
 
-	name := "appmesh_virtual_node_state"
+	name := "virtual_node_state"
 	metric, err := lookupMetric(name, promdto.MetricType_GAUGE, "name", "test-vt", "mesh", "test-mesh")
 	if err != nil {
 		t.Fatalf("Error collecting %s metric: %v", name, err)
@@ -70,7 +70,7 @@ func TestRecorder_SetVirtualNode(t *testing.T) {
 func TestRecorder_SetVirtualService(t *testing.T) {
 	stats.SetVirtualServiceActive("test-vs", "test-mesh")
 
-	name := "appmesh_virtual_service_state"
+	name := "virtual_service_state"
 	metric, err := lookupMetric(name, promdto.MetricType_GAUGE, "name", "test-vs", "mesh", "test-mesh")
 	if err != nil {
 		t.Fatalf("Error collecting %s metric: %v", name, err)
@@ -95,7 +95,7 @@ func TestRecorder_RecordOperationDuration(t *testing.T) {
 	stats.RecordOperationDuration("test-op-kind", "test-op-object", "test-op-name", 2*time.Second)
 
 	//verify duration metric
-	metric_name := "appmesh_operation_duration_seconds"
+	metric_name := "operation_duration_seconds"
 	metric, err := lookupMetric(metric_name, promdto.MetricType_HISTOGRAM,
 		"kind", "test-op-kind",
 		"object", "test-op-object",
@@ -114,7 +114,7 @@ func TestRecorder_RecordOperationDuration(t *testing.T) {
 func TestRecorder_RecordAWSAPIRequestError(t *testing.T) {
 	stats.RecordAWSAPIRequestError("test-svc", "test-op", "test-error-code")
 
-	metric_name := "appmesh_aws_api_errors"
+	metric_name := "aws_api_errors"
 	metric, err := lookupMetric(
 		metric_name,
 		promdto.MetricType_COUNTER,
@@ -130,7 +130,28 @@ func TestRecorder_RecordAWSAPIRequestError(t *testing.T) {
 	}
 }
 
-func lookupMetric(name string, metricType promdto.MetricType, labels ...string) (*promdto.Metric, error) {
+func TestRecorder_RecordOperationError(t *testing.T) {
+	stats.RecordOperationError("test-kind", "test-obj", "test-op", "test-error-code")
+
+	metric_name := "operation_errors"
+	metric, err := lookupMetric(
+		metric_name,
+		promdto.MetricType_COUNTER,
+		"kind", "test-kind",
+		"object", "test-obj",
+		"operation", "test-op",
+		"errorcode", "test-error-code",
+	)
+	if err != nil {
+		t.Fatalf("Error collecting %s metric: %v", metric_name, err)
+	}
+	if int(*metric.Counter.Value) != 1 {
+		t.Errorf("%s expected value %v got %v", metric_name, 1, *metric.Counter.Value)
+	}
+}
+
+func lookupMetric(nameSuffix string, metricType promdto.MetricType, labels ...string) (*promdto.Metric, error) {
+	name := "appmesh_" + nameSuffix
 	metricsRegistry := prometheus.DefaultRegisterer.(*prometheus.Registry)
 	if metrics, err := metricsRegistry.Gather(); err == nil {
 		for _, metricFamily := range metrics {

@@ -17,7 +17,7 @@ type Recorder struct {
 	operationDuration   *prometheus.HistogramVec
 	awsAPIRequestError  *prometheus.CounterVec
 	awsAPIRequestCount  *prometheus.CounterVec
-	controllerError     *prometheus.CounterVec
+	operationError      *prometheus.CounterVec
 }
 
 // NewRecorder registers the App Mesh metrics
@@ -66,11 +66,11 @@ func NewRecorder(register bool) *Recorder {
 		Help:      "Cumulative number of requests made to the AWS API",
 	}, []string{"service", "operation"})
 
-	controllerError := prometheus.NewCounterVec(prometheus.CounterOpts{
+	operationError := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Subsystem: Subsystem,
-		Name:      "controller_error",
-		Help:      "Errors in controller",
-	}, []string{"controller", "errorcode"})
+		Name:      "operation_errors",
+		Help:      "Count of errors performing an operation",
+	}, []string{"kind", "object", "operation", "errorcode"})
 
 	if register {
 		prometheus.MustRegister(meshState)
@@ -80,7 +80,7 @@ func NewRecorder(register bool) *Recorder {
 		prometheus.MustRegister(operationDuration)
 		prometheus.MustRegister(awsAPIRequestError)
 		prometheus.MustRegister(awsAPIRequestCount)
-		prometheus.MustRegister(controllerError)
+		prometheus.MustRegister(operationError)
 	}
 
 	return &Recorder{
@@ -91,7 +91,7 @@ func NewRecorder(register bool) *Recorder {
 		operationDuration:   operationDuration,
 		awsAPIRequestError:  awsAPIRequestError,
 		awsAPIRequestCount:  awsAPIRequestCount,
-		controllerError:     controllerError,
+		operationError:      operationError,
 	}
 }
 
@@ -103,7 +103,7 @@ func (r *Recorder) clearRegistry() {
 	prometheus.Unregister(r.operationDuration)
 	prometheus.Unregister(r.awsAPIRequestError)
 	prometheus.Unregister(r.awsAPIRequestCount)
-	prometheus.Unregister(r.controllerError)
+	prometheus.Unregister(r.operationError)
 }
 
 // SetMeshActive sets the mesh gauge to 1
@@ -158,7 +158,7 @@ func (r *Recorder) RecordAWSAPIRequestCount(service string, operation string) {
 	r.awsAPIRequestCount.WithLabelValues(service, operation).Inc()
 }
 
-// RecordControllerError records errors in controllers
-func (r *Recorder) RecordControllerError(kind string, errorcode string) {
-	r.controllerError.WithLabelValues(kind, errorcode).Inc()
+// RecordOperationError records errors in controllers
+func (r *Recorder) RecordOperationError(kind string, object string, operation string, errorcode string) {
+	r.operationError.WithLabelValues(kind, object, operation, errorcode).Inc()
 }

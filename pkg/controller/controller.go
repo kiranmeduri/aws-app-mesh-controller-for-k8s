@@ -466,9 +466,9 @@ func (c *Controller) processNextWorkItem(queue workqueue.RateLimitingInterface, 
 		// resource to be synced.
 		if err := handler.syncHandler(key); err != nil {
 			if ctrlerr, ok := err.(ControllerError); ok {
-				c.stats.RecordControllerError(handler.name, ctrlerr.Code)
+				c.stats.RecordOperationError("controller", handler.name, "sync", ctrlerr.Code)
 			} else {
-				c.stats.RecordControllerError(handler.name, "internal")
+				c.stats.RecordOperationError("controller", handler.name, "sync", "internal")
 			}
 			return fmt.Errorf("error syncing '%s': %s", key, err.Error())
 		}
