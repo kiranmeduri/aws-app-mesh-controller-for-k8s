@@ -61,7 +61,7 @@ func NewCloudMapReconciler(
 // +kubebuilder:rbac:groups="",resources=pods/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
 
-func (r *cloudMapReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *cloudMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	return runtime.HandleReconcileError(r.reconcile(req), r.log)
 }
 

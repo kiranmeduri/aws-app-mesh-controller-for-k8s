@@ -2,21 +2,21 @@ package conversions
 
 import (
 	"fmt"
+	"testing"
+
 	appmesh "github.com/aws/aws-app-mesh-controller-for-k8s/apis/appmesh/v1beta2"
 	mock_conversion "github.com/aws/aws-app-mesh-controller-for-k8s/mocks/apimachinery/pkg/conversion"
 	"github.com/aws/aws-sdk-go/aws"
 	appmeshsdk "github.com/aws/aws-sdk-go/service/appmesh"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/apimachinery/pkg/conversion"
-	"testing"
 )
 
 func TestConvert_CRD_GatewayRouteVirtualService_To_SDK_GatewayRouteVirtualService(t *testing.T) {
 	type args struct {
 		crdObj           *appmesh.GatewayRouteVirtualService
 		sdkObj           *appmeshsdk.GatewayRouteVirtualService
-		scopeConvertFunc func(src, dest interface{}, flags conversion.FieldMatchingFlags) error
+		scopeConvertFunc func(src, dest interface{}) error
 	}
 	tests := []struct {
 		name       string
@@ -34,7 +34,7 @@ func TestConvert_CRD_GatewayRouteVirtualService_To_SDK_GatewayRouteVirtualServic
 					},
 				},
 				sdkObj: &appmeshsdk.GatewayRouteVirtualService{},
-				scopeConvertFunc: func(src, dest interface{}, flags conversion.FieldMatchingFlags) error {
+				scopeConvertFunc: func(src, dest interface{}) error {
 					vsRef := src.(*appmesh.VirtualServiceReference)
 					vsNamePtr := dest.(*string)
 					*vsNamePtr = fmt.Sprintf("%s.%s", vsRef.Name, aws.StringValue(vsRef.Namespace))
@@ -64,9 +64,8 @@ func TestConvert_CRD_GatewayRouteVirtualService_To_SDK_GatewayRouteVirtualServic
 			defer ctrl.Finish()
 			scope := mock_conversion.NewMockScope(ctrl)
 			if tt.args.scopeConvertFunc != nil {
-				scope.EXPECT().Convert(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(tt.args.scopeConvertFunc).AnyTimes()
+				scope.EXPECT().Convert(gomock.Any(), gomock.Any()).DoAndReturn(tt.args.scopeConvertFunc).AnyTimes()
 			}
-			scope.EXPECT().Flags().Return(conversion.DestFromSource).AnyTimes()
 
 			err := Convert_CRD_GatewayRouteVirtualService_To_SDK_GatewayRouteVirtualService(tt.args.crdObj, tt.args.sdkObj, scope)
 			if tt.wantErr != nil {
@@ -83,7 +82,7 @@ func TestConvert_CRD_GatewayRouteTarget_To_SDK_GatewayRouteTarget(t *testing.T) 
 	type args struct {
 		crdObj           *appmesh.GatewayRouteTarget
 		sdkObj           *appmeshsdk.GatewayRouteTarget
-		scopeConvertFunc func(src, dest interface{}, flags conversion.FieldMatchingFlags) error
+		scopeConvertFunc func(src, dest interface{}) error
 	}
 	tests := []struct {
 		name       string
@@ -103,7 +102,7 @@ func TestConvert_CRD_GatewayRouteTarget_To_SDK_GatewayRouteTarget(t *testing.T) 
 					},
 				},
 				sdkObj: &appmeshsdk.GatewayRouteTarget{},
-				scopeConvertFunc: func(src, dest interface{}, flags conversion.FieldMatchingFlags) error {
+				scopeConvertFunc: func(src, dest interface{}) error {
 					vsRef := src.(*appmesh.VirtualServiceReference)
 					vsNamePtr := dest.(*string)
 					*vsNamePtr = fmt.Sprintf("%s.%s", vsRef.Name, aws.StringValue(vsRef.Namespace))
@@ -123,9 +122,8 @@ func TestConvert_CRD_GatewayRouteTarget_To_SDK_GatewayRouteTarget(t *testing.T) 
 			defer ctrl.Finish()
 			scope := mock_conversion.NewMockScope(ctrl)
 			if tt.args.scopeConvertFunc != nil {
-				scope.EXPECT().Convert(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(tt.args.scopeConvertFunc).AnyTimes()
+				scope.EXPECT().Convert(gomock.Any(), gomock.Any()).DoAndReturn(tt.args.scopeConvertFunc).AnyTimes()
 			}
-			scope.EXPECT().Flags().Return(conversion.DestFromSource).AnyTimes()
 
 			err := Convert_CRD_GatewayRouteTarget_To_SDK_GatewayRouteTarget(tt.args.crdObj, tt.args.sdkObj, scope)
 			if tt.wantErr != nil {
@@ -191,7 +189,7 @@ func TestConvert_CRD_HTTPGatewayRouteAction_To_SDK_HttpGatewayRouteAction(t *tes
 	type args struct {
 		crdObj           *appmesh.HTTPGatewayRouteAction
 		sdkObj           *appmeshsdk.HttpGatewayRouteAction
-		scopeConvertFunc func(src, dest interface{}, flags conversion.FieldMatchingFlags) error
+		scopeConvertFunc func(src, dest interface{}) error
 	}
 	tests := []struct {
 		name       string
@@ -213,7 +211,7 @@ func TestConvert_CRD_HTTPGatewayRouteAction_To_SDK_HttpGatewayRouteAction(t *tes
 					},
 				},
 				sdkObj: &appmeshsdk.HttpGatewayRouteAction{},
-				scopeConvertFunc: func(src, dest interface{}, flags conversion.FieldMatchingFlags) error {
+				scopeConvertFunc: func(src, dest interface{}) error {
 					vsRef := src.(*appmesh.VirtualServiceReference)
 					vsNamePtr := dest.(*string)
 					*vsNamePtr = fmt.Sprintf("%s.%s", vsRef.Name, aws.StringValue(vsRef.Namespace))
@@ -235,9 +233,8 @@ func TestConvert_CRD_HTTPGatewayRouteAction_To_SDK_HttpGatewayRouteAction(t *tes
 			defer ctrl.Finish()
 			scope := mock_conversion.NewMockScope(ctrl)
 			if tt.args.scopeConvertFunc != nil {
-				scope.EXPECT().Convert(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(tt.args.scopeConvertFunc).AnyTimes()
+				scope.EXPECT().Convert(gomock.Any(), gomock.Any()).DoAndReturn(tt.args.scopeConvertFunc).AnyTimes()
 			}
-			scope.EXPECT().Flags().Return(conversion.DestFromSource).AnyTimes()
 
 			err := Convert_CRD_HTTPGatewayRouteAction_To_SDK_HttpGatewayRouteAction(tt.args.crdObj, tt.args.sdkObj, scope)
 			if tt.wantErr != nil {
@@ -254,7 +251,7 @@ func TestConvert_CRD_HTTPGatewayRoute_To_SDK_HttpGatewayRoute(t *testing.T) {
 	type args struct {
 		crdObj           *appmesh.HTTPGatewayRoute
 		sdkObj           *appmeshsdk.HttpGatewayRoute
-		scopeConvertFunc func(src, dest interface{}, flags conversion.FieldMatchingFlags) error
+		scopeConvertFunc func(src, dest interface{}) error
 	}
 	tests := []struct {
 		name       string
@@ -281,7 +278,7 @@ func TestConvert_CRD_HTTPGatewayRoute_To_SDK_HttpGatewayRoute(t *testing.T) {
 					},
 				},
 				sdkObj: &appmeshsdk.HttpGatewayRoute{},
-				scopeConvertFunc: func(src, dest interface{}, flags conversion.FieldMatchingFlags) error {
+				scopeConvertFunc: func(src, dest interface{}) error {
 					vsRef := src.(*appmesh.VirtualServiceReference)
 					vsNamePtr := dest.(*string)
 					*vsNamePtr = fmt.Sprintf("%s.%s", vsRef.Name, aws.StringValue(vsRef.Namespace))
@@ -308,9 +305,8 @@ func TestConvert_CRD_HTTPGatewayRoute_To_SDK_HttpGatewayRoute(t *testing.T) {
 			defer ctrl.Finish()
 			scope := mock_conversion.NewMockScope(ctrl)
 			if tt.args.scopeConvertFunc != nil {
-				scope.EXPECT().Convert(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(tt.args.scopeConvertFunc).AnyTimes()
+				scope.EXPECT().Convert(gomock.Any(), gomock.Any()).DoAndReturn(tt.args.scopeConvertFunc).AnyTimes()
 			}
-			scope.EXPECT().Flags().Return(conversion.DestFromSource).AnyTimes()
 
 			err := Convert_CRD_HTTPGatewayRoute_To_SDK_HttpGatewayRoute(tt.args.crdObj, tt.args.sdkObj, scope)
 			if tt.wantErr != nil {
@@ -376,7 +372,7 @@ func TestConvert_CRD_GRPCGatewayRouteAction_To_SDK_GrpcGatewayRouteAction(t *tes
 	type args struct {
 		crdObj           *appmesh.GRPCGatewayRouteAction
 		sdkObj           *appmeshsdk.GrpcGatewayRouteAction
-		scopeConvertFunc func(src, dest interface{}, flags conversion.FieldMatchingFlags) error
+		scopeConvertFunc func(src, dest interface{}) error
 	}
 	tests := []struct {
 		name       string
@@ -398,7 +394,7 @@ func TestConvert_CRD_GRPCGatewayRouteAction_To_SDK_GrpcGatewayRouteAction(t *tes
 					},
 				},
 				sdkObj: &appmeshsdk.GrpcGatewayRouteAction{},
-				scopeConvertFunc: func(src, dest interface{}, flags conversion.FieldMatchingFlags) error {
+				scopeConvertFunc: func(src, dest interface{}) error {
 					vsRef := src.(*appmesh.VirtualServiceReference)
 					vsNamePtr := dest.(*string)
 					*vsNamePtr = fmt.Sprintf("%s.%s", vsRef.Name, aws.StringValue(vsRef.Namespace))
@@ -420,9 +416,8 @@ func TestConvert_CRD_GRPCGatewayRouteAction_To_SDK_GrpcGatewayRouteAction(t *tes
 			defer ctrl.Finish()
 			scope := mock_conversion.NewMockScope(ctrl)
 			if tt.args.scopeConvertFunc != nil {
-				scope.EXPECT().Convert(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(tt.args.scopeConvertFunc).AnyTimes()
+				scope.EXPECT().Convert(gomock.Any(), gomock.Any()).DoAndReturn(tt.args.scopeConvertFunc).AnyTimes()
 			}
-			scope.EXPECT().Flags().Return(conversion.DestFromSource).AnyTimes()
 
 			err := Convert_CRD_GRPCGatewayRouteAction_To_SDK_GrpcGatewayRouteAction(tt.args.crdObj, tt.args.sdkObj, scope)
 			if tt.wantErr != nil {
@@ -439,7 +434,7 @@ func TestConvert_CRD_GRPCGatewayRoute_To_SDK_GrpcGatewayRoute(t *testing.T) {
 	type args struct {
 		crdObj           *appmesh.GRPCGatewayRoute
 		sdkObj           *appmeshsdk.GrpcGatewayRoute
-		scopeConvertFunc func(src, dest interface{}, flags conversion.FieldMatchingFlags) error
+		scopeConvertFunc func(src, dest interface{}) error
 	}
 	tests := []struct {
 		name       string
@@ -466,7 +461,7 @@ func TestConvert_CRD_GRPCGatewayRoute_To_SDK_GrpcGatewayRoute(t *testing.T) {
 					},
 				},
 				sdkObj: &appmeshsdk.GrpcGatewayRoute{},
-				scopeConvertFunc: func(src, dest interface{}, flags conversion.FieldMatchingFlags) error {
+				scopeConvertFunc: func(src, dest interface{}) error {
 					vsRef := src.(*appmesh.VirtualServiceReference)
 					vsNamePtr := dest.(*string)
 					*vsNamePtr = fmt.Sprintf("%s.%s", vsRef.Name, aws.StringValue(vsRef.Namespace))
@@ -493,9 +488,8 @@ func TestConvert_CRD_GRPCGatewayRoute_To_SDK_GrpcGatewayRoute(t *testing.T) {
 			defer ctrl.Finish()
 			scope := mock_conversion.NewMockScope(ctrl)
 			if tt.args.scopeConvertFunc != nil {
-				scope.EXPECT().Convert(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(tt.args.scopeConvertFunc).AnyTimes()
+				scope.EXPECT().Convert(gomock.Any(), gomock.Any()).DoAndReturn(tt.args.scopeConvertFunc).AnyTimes()
 			}
-			scope.EXPECT().Flags().Return(conversion.DestFromSource).AnyTimes()
 
 			err := Convert_CRD_GRPCGatewayRoute_To_SDK_GrpcGatewayRoute(tt.args.crdObj, tt.args.sdkObj, scope)
 			if tt.wantErr != nil {
@@ -512,7 +506,7 @@ func TestConvert_CRD_GatewayRouteSpec_To_SDK_GatewayRouteSpec(t *testing.T) {
 	type args struct {
 		crdObj           *appmesh.GatewayRouteSpec
 		sdkObj           *appmeshsdk.GatewayRouteSpec
-		scopeConvertFunc func(src, dest interface{}, flags conversion.FieldMatchingFlags) error
+		scopeConvertFunc func(src, dest interface{}) error
 	}
 	tests := []struct {
 		name       string
@@ -571,7 +565,7 @@ func TestConvert_CRD_GatewayRouteSpec_To_SDK_GatewayRouteSpec(t *testing.T) {
 					},
 				},
 				sdkObj: &appmeshsdk.GatewayRouteSpec{},
-				scopeConvertFunc: func(src, dest interface{}, flags conversion.FieldMatchingFlags) error {
+				scopeConvertFunc: func(src, dest interface{}) error {
 					vsRef := src.(*appmesh.VirtualServiceReference)
 					vsNamePtr := dest.(*string)
 					*vsNamePtr = fmt.Sprintf("%s.%s", vsRef.Name, aws.StringValue(vsRef.Namespace))
@@ -654,7 +648,7 @@ func TestConvert_CRD_GatewayRouteSpec_To_SDK_GatewayRouteSpec(t *testing.T) {
 					HTTP2Route: nil,
 				},
 				sdkObj: &appmeshsdk.GatewayRouteSpec{},
-				scopeConvertFunc: func(src, dest interface{}, flags conversion.FieldMatchingFlags) error {
+				scopeConvertFunc: func(src, dest interface{}) error {
 					vsRef := src.(*appmesh.VirtualServiceReference)
 					vsNamePtr := dest.(*string)
 					*vsNamePtr = fmt.Sprintf("%s.%s", vsRef.Name, aws.StringValue(vsRef.Namespace))
@@ -726,7 +720,7 @@ func TestConvert_CRD_GatewayRouteSpec_To_SDK_GatewayRouteSpec(t *testing.T) {
 					HTTPRoute: nil,
 				},
 				sdkObj: &appmeshsdk.GatewayRouteSpec{},
-				scopeConvertFunc: func(src, dest interface{}, flags conversion.FieldMatchingFlags) error {
+				scopeConvertFunc: func(src, dest interface{}) error {
 					vsRef := src.(*appmesh.VirtualServiceReference)
 					vsNamePtr := dest.(*string)
 					*vsNamePtr = fmt.Sprintf("%s.%s", vsRef.Name, aws.StringValue(vsRef.Namespace))
@@ -798,7 +792,7 @@ func TestConvert_CRD_GatewayRouteSpec_To_SDK_GatewayRouteSpec(t *testing.T) {
 					},
 				},
 				sdkObj: &appmeshsdk.GatewayRouteSpec{},
-				scopeConvertFunc: func(src, dest interface{}, flags conversion.FieldMatchingFlags) error {
+				scopeConvertFunc: func(src, dest interface{}) error {
 					vsRef := src.(*appmesh.VirtualServiceReference)
 					vsNamePtr := dest.(*string)
 					*vsNamePtr = fmt.Sprintf("%s.%s", vsRef.Name, aws.StringValue(vsRef.Namespace))
@@ -840,9 +834,8 @@ func TestConvert_CRD_GatewayRouteSpec_To_SDK_GatewayRouteSpec(t *testing.T) {
 			defer ctrl.Finish()
 			scope := mock_conversion.NewMockScope(ctrl)
 			if tt.args.scopeConvertFunc != nil {
-				scope.EXPECT().Convert(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(tt.args.scopeConvertFunc).AnyTimes()
+				scope.EXPECT().Convert(gomock.Any(), gomock.Any()).DoAndReturn(tt.args.scopeConvertFunc).AnyTimes()
 			}
-			scope.EXPECT().Flags().Return(conversion.DestFromSource).AnyTimes()
 
 			err := Convert_CRD_GatewayRouteSpec_To_SDK_GatewayRouteSpec(tt.args.crdObj, tt.args.sdkObj, scope)
 			if tt.wantErr != nil {

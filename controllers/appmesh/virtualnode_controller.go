@@ -51,7 +51,7 @@ type virtualNodeReconciler struct {
 // +kubebuilder:rbac:groups=appmesh.k8s.aws,resources=virtualnodes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=appmesh.k8s.aws,resources=virtualnodes/status,verbs=get;update;patch
 
-func (r *virtualNodeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *virtualNodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	return runtime.HandleReconcileError(r.reconcile(req), r.log)
 }
 

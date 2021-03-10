@@ -55,7 +55,7 @@ type meshReconciler struct {
 // +kubebuilder:rbac:groups=appmesh.k8s.aws,resources=meshes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=appmesh.k8s.aws,resources=meshes/status,verbs=get;update;patch
 
-func (r *meshReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *meshReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	return runtime.HandleReconcileError(r.reconcile(req), r.log)
 }
 

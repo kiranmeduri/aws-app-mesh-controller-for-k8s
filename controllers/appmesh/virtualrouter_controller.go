@@ -61,7 +61,7 @@ type virtualRouterReconciler struct {
 // +kubebuilder:rbac:groups=appmesh.k8s.aws,resources=virtualrouters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=appmesh.k8s.aws,resources=virtualrouters/status,verbs=get;update;patch
 
-func (r *virtualRouterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *virtualRouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	return runtime.HandleReconcileError(r.reconcile(req), r.log)
 }
 

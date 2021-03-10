@@ -63,7 +63,7 @@ type virtualServiceReconciler struct {
 // +kubebuilder:rbac:groups=appmesh.k8s.aws,resources=virtualservices,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=appmesh.k8s.aws,resources=virtualservices/status,verbs=get;update;patch
 
-func (r *virtualServiceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *virtualServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	return runtime.HandleReconcileError(r.reconcile(req), r.log)
 }
 

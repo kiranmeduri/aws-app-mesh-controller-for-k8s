@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"gomodules.xyz/jsonpatch/v2"
-	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,7 +34,7 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 	clientgoscheme.AddToScheme(schema)
 	// k8sDecoder knows k8s objects
 	decoder, _ := admission.NewDecoder(schema)
-	patchTypeJSONPatch := admissionv1beta1.PatchTypeJSONPatch
+	patchTypeJSONPatch := admissionv1.PatchTypeJSONPatch
 
 	initialPod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
@@ -93,8 +93,8 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 			},
 			args: args{
 				req: admission.Request{
-					AdmissionRequest: admissionv1beta1.AdmissionRequest{
-						Operation: admissionv1beta1.Create,
+					AdmissionRequest: admissionv1.AdmissionRequest{
+						Operation: admissionv1.Create,
 						Object: runtime.RawExtension{
 							Raw: initialPodRaw,
 						},
@@ -103,7 +103,7 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 			},
 			want: admission.Response{
 				Patches: []jsonpatch.JsonPatchOperation{},
-				AdmissionResponse: admissionv1beta1.AdmissionResponse{
+				AdmissionResponse: admissionv1.AdmissionResponse{
 					Allowed:   true,
 					PatchType: &patchTypeJSONPatch,
 				},
@@ -127,8 +127,8 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 			},
 			args: args{
 				req: admission.Request{
-					AdmissionRequest: admissionv1beta1.AdmissionRequest{
-						Operation: admissionv1beta1.Create,
+					AdmissionRequest: admissionv1.AdmissionRequest{
+						Operation: admissionv1.Create,
 						Object: runtime.RawExtension{
 							Raw: initialPodRaw,
 						},
@@ -143,7 +143,7 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 						Value:     "awesome-node",
 					},
 				},
-				AdmissionResponse: admissionv1beta1.AdmissionResponse{
+				AdmissionResponse: admissionv1.AdmissionResponse{
 					Allowed:   true,
 					PatchType: &patchTypeJSONPatch,
 				},
@@ -162,8 +162,8 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 			},
 			args: args{
 				req: admission.Request{
-					AdmissionRequest: admissionv1beta1.AdmissionRequest{
-						Operation: admissionv1beta1.Create,
+					AdmissionRequest: admissionv1.AdmissionRequest{
+						Operation: admissionv1.Create,
 						Object: runtime.RawExtension{
 							Raw: initialPodRaw,
 						},
@@ -172,7 +172,7 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 			},
 			want: admission.Response{
 				Patches: nil,
-				AdmissionResponse: admissionv1beta1.AdmissionResponse{
+				AdmissionResponse: admissionv1.AdmissionResponse{
 					Allowed: false,
 					Result: &metav1.Status{
 						Code:   http.StatusForbidden,
@@ -191,8 +191,8 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 			},
 			args: args{
 				req: admission.Request{
-					AdmissionRequest: admissionv1beta1.AdmissionRequest{
-						Operation: admissionv1beta1.Create,
+					AdmissionRequest: admissionv1.AdmissionRequest{
+						Operation: admissionv1.Create,
 						Object: runtime.RawExtension{
 							Raw: initialPodRaw,
 						},
@@ -201,7 +201,7 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 			},
 			want: admission.Response{
 				Patches: nil,
-				AdmissionResponse: admissionv1beta1.AdmissionResponse{
+				AdmissionResponse: admissionv1.AdmissionResponse{
 					Allowed: false,
 					Result: &metav1.Status{
 						Code:    http.StatusBadRequest,
@@ -223,8 +223,8 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 			},
 			args: args{
 				req: admission.Request{
-					AdmissionRequest: admissionv1beta1.AdmissionRequest{
-						Operation: admissionv1beta1.Update,
+					AdmissionRequest: admissionv1.AdmissionRequest{
+						Operation: admissionv1.Update,
 						Object: runtime.RawExtension{
 							Raw: updatedPodRaw,
 						},
@@ -236,7 +236,7 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 			},
 			want: admission.Response{
 				Patches: []jsonpatch.JsonPatchOperation{},
-				AdmissionResponse: admissionv1beta1.AdmissionResponse{
+				AdmissionResponse: admissionv1.AdmissionResponse{
 					Allowed:   true,
 					PatchType: &patchTypeJSONPatch,
 				},
@@ -260,8 +260,8 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 			},
 			args: args{
 				req: admission.Request{
-					AdmissionRequest: admissionv1beta1.AdmissionRequest{
-						Operation: admissionv1beta1.Update,
+					AdmissionRequest: admissionv1.AdmissionRequest{
+						Operation: admissionv1.Update,
 						Object: runtime.RawExtension{
 							Raw: updatedPodRaw,
 						},
@@ -279,7 +279,7 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 						Value:     "awesome-node",
 					},
 				},
-				AdmissionResponse: admissionv1beta1.AdmissionResponse{
+				AdmissionResponse: admissionv1.AdmissionResponse{
 					Allowed:   true,
 					PatchType: &patchTypeJSONPatch,
 				},
@@ -298,8 +298,8 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 			},
 			args: args{
 				req: admission.Request{
-					AdmissionRequest: admissionv1beta1.AdmissionRequest{
-						Operation: admissionv1beta1.Update,
+					AdmissionRequest: admissionv1.AdmissionRequest{
+						Operation: admissionv1.Update,
 						Object: runtime.RawExtension{
 							Raw: updatedPodRaw,
 						},
@@ -311,7 +311,7 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 			},
 			want: admission.Response{
 				Patches: nil,
-				AdmissionResponse: admissionv1beta1.AdmissionResponse{
+				AdmissionResponse: admissionv1.AdmissionResponse{
 					Allowed: false,
 					Result: &metav1.Status{
 						Code:   http.StatusForbidden,
@@ -330,8 +330,8 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 			},
 			args: args{
 				req: admission.Request{
-					AdmissionRequest: admissionv1beta1.AdmissionRequest{
-						Operation: admissionv1beta1.Update,
+					AdmissionRequest: admissionv1.AdmissionRequest{
+						Operation: admissionv1.Update,
 						Object: runtime.RawExtension{
 							Raw: updatedPodRaw,
 						},
@@ -343,7 +343,7 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 			},
 			want: admission.Response{
 				Patches: nil,
-				AdmissionResponse: admissionv1beta1.AdmissionResponse{
+				AdmissionResponse: admissionv1.AdmissionResponse{
 					Allowed: false,
 					Result: &metav1.Status{
 						Code:    http.StatusBadRequest,
@@ -359,8 +359,8 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 			},
 			args: args{
 				req: admission.Request{
-					AdmissionRequest: admissionv1beta1.AdmissionRequest{
-						Operation: admissionv1beta1.Connect,
+					AdmissionRequest: admissionv1.AdmissionRequest{
+						Operation: admissionv1.Connect,
 						Object: runtime.RawExtension{
 							Raw: updatedPodRaw,
 						},
@@ -369,7 +369,7 @@ func Test_mutatingHandler_Handle(t *testing.T) {
 			},
 			want: admission.Response{
 				Patches: nil,
-				AdmissionResponse: admissionv1beta1.AdmissionResponse{
+				AdmissionResponse: admissionv1.AdmissionResponse{
 					Allowed: true,
 					Result: &metav1.Status{
 						Code: http.StatusOK,
