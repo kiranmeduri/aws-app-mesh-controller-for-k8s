@@ -1,13 +1,14 @@
 package inject
 
 import (
+	"testing"
+
 	appmesh "github.com/aws/aws-app-mesh-controller-for-k8s/apis/appmesh/v1beta2"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 )
 
 func Test_proxyMutator_mutate(t *testing.T) {
@@ -405,6 +406,62 @@ func Test_proxyMutator_getEgressIgnoredPorts(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &proxyMutator{}
 			got := m.getEgressIgnoredPorts(tt.args.pod)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_proxyMutator_getProxyEgressPort(t *testing.T) {
+	type args struct {
+		pod *corev1.Pod
+	}
+	tests := []struct {
+		name string
+		args args
+		want int
+	}{
+		{
+			name: "get ProxyEgressPort from annotation",
+			args: args{
+				pod: &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"appmesh.k8s.aws/proxyEgressPort": "16001",
+						},
+					},
+				},
+			},
+			want: 16001,
+		},
+		{
+			name: "get ProxyEgressPort by default",
+			args: args{
+				pod: &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{},
+					},
+				},
+			},
+			want: 15001,
+		},
+		{
+			name: "get ProxyEgressPort from malformed annotation",
+			args: args{
+				pod: &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"appmesh.k8s.aws/proxyEgressPort": "abcd",
+						},
+					},
+				},
+			},
+			want: 15001,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &proxyMutator{}
+			got := m.getProxyEgressPort(tt.args.pod)
 			assert.Equal(t, tt.want, got)
 		})
 	}

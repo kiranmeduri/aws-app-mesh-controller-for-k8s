@@ -2,9 +2,11 @@ package inject
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+
 	appmesh "github.com/aws/aws-app-mesh-controller-for-k8s/apis/appmesh/v1beta2"
 	corev1 "k8s.io/api/core/v1"
-	"strings"
 )
 
 const (
@@ -61,14 +63,25 @@ type proxyConfig struct {
 func (m *proxyMutator) buildProxyConfig(pod *corev1.Pod) proxyConfig {
 	appPorts := m.getAppPorts(pod)
 	egressIgnoredPorts := m.getEgressIgnoredPorts(pod)
+	proxyEgressPort := m.getProxyEgressPort(pod)
 	return proxyConfig{
 		appPorts:           appPorts,
 		egressIgnoredIPs:   m.mutatorConfig.egressIgnoredIPs,
 		egressIgnoredPorts: egressIgnoredPorts,
-		proxyEgressPort:    defaultProxyEgressPort,
+		proxyEgressPort:    (int64)(proxyEgressPort),
 		proxyIngressPort:   defaultProxyIngressPort,
 		proxyUID:           defaultProxyUID,
 	}
+}
+
+func (m *proxyMutator) getProxyEgressPort(pod *corev1.Pod) int {
+	if v, ok := pod.ObjectMeta.Annotations[AppMeshProxyEgressPortAnnotation]; ok {
+		p, err := strconv.Atoi(v)
+		if err == nil {
+			return p
+		}
+	}
+	return defaultProxyEgressPort
 }
 
 func (m *proxyMutator) getAppPorts(pod *corev1.Pod) string {
